@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UserConfig>
+	<Group id="MinimapZoom" displayName="Mods.MinimapZoom" tags="nonSyncable">
+		<VisibleVars>
+			<Var id="MZRadius" displayName="MZRadius" displayType="SLIDER;33;200;167" tags="nonSyncable"/>
+			<Var id="MZIndoors" displayName="MZIndoors" displayType="TOGGLE" tags="nonSyncable"/>
+		</VisibleVars>
+	</Group>
+</UserConfig>
