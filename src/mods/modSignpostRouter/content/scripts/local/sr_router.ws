@@ -233,5 +233,7 @@ class SRRouter
 				+ " | " + pins.ToString() + " line=" + SRBool( overlay.IsDrawn() ) );
 		if ( SRConsumeToggle( 'SRSelfTest' ) )
 			SRNotify( SRRunSelfTest() );
+			if ( SRConsumeToggle( 'SRCalibrate' ) )
+				SRCalibrate( minimap );
 	}
 }
