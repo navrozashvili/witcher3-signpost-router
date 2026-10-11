@@ -30,12 +30,10 @@ class SROverlay
 	private const var ID_FIRST : int;			default ID_FIRST = 778100;
 	private const var ID_LAST : int;			default ID_LAST = 799000;
 
-	// Colour format is ARGB (verified with the calibration test). 0xFF2E9A48 = dark green, opaque.
-	// Lengths below are at vanilla zoom (33 m radius) and scale with the minimap zoom.
-	private const var DOT_COLOR : int;			default DOT_COLOR = -13723064;
+	// Lengths below are at vanilla zoom (33 m radius) and scale with the minimap zoom. Colour comes from settings.
 	private const var DOT_WIDTH : float;		default DOT_WIDTH = 14.0;
-	private const var DOT_LEN : float;			default DOT_LEN = 3.0;
-	private const var DOT_SPACING : float;		default DOT_SPACING = 10.0;
+	private const var DOT_LEN : float;			default DOT_LEN = 2.0;
+	private const var DOT_SPACING : float;		default DOT_SPACING = 5.0;
 	private const var DOT_RANGE : float;		default DOT_RANGE = 45.0;	// a bit beyond the 33 m vanilla radius
 	private const var MAX_DOTS : int;			default MAX_DOTS = 40;
 
@@ -85,7 +83,7 @@ class SROverlay
 
 	// Dots are anchored to the signposts (counted from the signpost end of each leg), so a redraw after
 	// walking puts them in the same world positions. The ones nearest the player are sent first.
-	public function Draw( player : Vector, entryPos : Vector, exitPos : Vector, target : Vector )
+	public function Draw( player : Vector, entryPos : Vector, exitPos : Vector, target : Vector, color : int )
 	{
 		var scale : float;
 		var near : array< SRDot >;
@@ -93,10 +91,10 @@ class SROverlay
 
 		scale = ZoomScale();
 		queue.Clear();
-		near = AnchoredDots( BuildLeg( entryPos, player, true, player ), player, scale );
+		near = AnchoredDots( BuildLeg( entryPos, player, true, player ), player, scale, color );
 		for ( i = near.Size() - 1; i >= 0; i -= 1 )
 			queue.PushBack( near[ i ] );
-		near = AnchoredDots( BuildLeg( exitPos, target, false, player ), player, scale );
+		near = AnchoredDots( BuildLeg( exitPos, target, false, player ), player, scale, color );
 		for ( i = 0; i < near.Size(); i += 1 )
 			queue.PushBack( near[ i ] );
 		StartSend();
@@ -115,32 +113,6 @@ class SROverlay
 		if ( zoom <= 0 )
 			return 1.0;
 		return ClampF( 1.0 / zoom, 1.0, 8.0 );
-	}
-
-	// Five long test lines north of the player, west -> east, one colour encoding each.
-	// 1 white -1 (control) | 2 0xFFFF0000 | 3 0xFF0000FF | 4 0x00FF00FF | 5 0x8000FF00
-	public function Calibrate( base : Vector )
-	{
-		var colors : array< int >;
-		var line : SRDot;
-		var i : int;
-
-		colors.PushBack( -1 );
-		colors.PushBack( -65536 );
-		colors.PushBack( -16776961 );
-		colors.PushBack( 16711935 );
-		colors.PushBack( -2147418368 );
-
-		queue.Clear();
-		for ( i = 0; i < colors.Size(); i += 1 )
-		{
-			line.from = base + Vector( ( (float)( i - 2 ) ) * 15.0, 5, 0 );
-			line.to = line.from + Vector( 0, 60, 0 );
-			line.color = colors[ i ];
-			line.width = 20.0;
-			queue.PushBack( line );
-		}
-		StartSend();
 	}
 
 	public function Clear()
@@ -209,7 +181,7 @@ class SROverlay
 
 	// A short dash every spacing metres along the polyline, counted from points[0] so the positions stay
 	// put between redraws. Only dashes within range of the player are returned (at most MAX_DOTS).
-	private function AnchoredDots( points : array< Vector >, player : Vector, scale : float ) : array< SRDot >
+	private function AnchoredDots( points : array< Vector >, player : Vector, scale : float, color : int ) : array< SRDot >
 	{
 		var result : array< SRDot >;
 		var dot : SRDot;
@@ -219,7 +191,7 @@ class SROverlay
 
 		spacing = DOT_SPACING * scale;
 		range = DOT_RANGE * scale;
-		dot.color = DOT_COLOR;
+		dot.color = color;
 		dot.width = DOT_WIDTH;
 		along = spacing;
 		for ( i = 0; i + 1 < points.Size() && result.Size() < MAX_DOTS; i += 1 )

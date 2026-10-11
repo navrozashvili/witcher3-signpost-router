@@ -17,9 +17,18 @@
 			<Var id="SRDetour" displayName="SRDetour" displayType="SLIDER;100;200;20" tags="nonSyncable"/>
 			<Var id="SRMinSaving" displayName="SRMinSaving" displayType="SLIDER;0;1000;40" tags="nonSyncable"/>
 			<Var id="SRShowLine" displayName="SRShowLine" displayType="TOGGLE" tags="nonSyncable"/>
+			<Var id="SRColor" displayName="SRColor" displayType="OPTIONS" tags="nonSyncable">
+				<OptionsArray>
+					<Option id="0" displayName="SRColorCyan"><Entry varId="SRColor" value="0"/></Option>
+					<Option id="1" displayName="SRColorGold"><Entry varId="SRColor" value="1"/></Option>
+					<Option id="2" displayName="SRColorMagenta"><Entry varId="SRColor" value="2"/></Option>
+					<Option id="3" displayName="SRColorLime"><Entry varId="SRColor" value="3"/></Option>
+					<Option id="4" displayName="SRColorOrange"><Entry varId="SRColor" value="4"/></Option>
+					<Option id="5" displayName="SRColorDarkGreen"><Entry varId="SRColor" value="5"/></Option>
+				</OptionsArray>
+			</Var>
 			<Var id="SRStatus" displayName="SRStatus" displayType="TOGGLE" tags="nonSyncable"/>
 			<Var id="SRSelfTest" displayName="SRSelfTest" displayType="TOGGLE" tags="nonSyncable"/>
-			<Var id="SRCalibrate" displayName="SRCalibrate" displayType="TOGGLE" tags="nonSyncable"/>
 		</VisibleVars>
 	</Group>
 </UserConfig>

@@ -10,4 +10,10 @@ option_SRMinSaving|Minimum saving (m)
 option_SRShowLine|Show route dots
 option_SRStatus|Show status (one-shot)
 option_SRSelfTest|Run self-test (one-shot)
-option_SRCalibrate|Calibrate line colours (one-shot)
+option_SRColor|Route colour
+preset_value_SRColorCyan|Cyan
+preset_value_SRColorGold|Gold
+preset_value_SRColorMagenta|Magenta
+preset_value_SRColorLime|Lime
+preset_value_SRColorOrange|Orange
+preset_value_SRColorDarkGreen|Dark green

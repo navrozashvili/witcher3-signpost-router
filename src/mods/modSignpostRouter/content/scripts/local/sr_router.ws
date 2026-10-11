@@ -96,7 +96,7 @@ class SRRouter
 
 	private function DrawDots( pos : Vector, entryPos : Vector, exitPos : Vector, target : Vector )
 	{
-		overlay.Draw( pos, entryPos, exitPos, target );
+		overlay.Draw( pos, entryPos, exitPos, target, SRRouteColor( settings.color ) );
 		lastDrawPos = pos;
 		lastDrawScale = overlay.ZoomScale();
 	}
@@ -255,10 +255,5 @@ class SRRouter
 				+ " | " + pins.ToString() + " line=" + SRBool( overlay.IsDrawn() ) + " wipes=" + overlay.GetWipes() + " sends=" + overlay.GetSends() );
 		if ( SRConsumeToggle( 'SRSelfTest' ) )
 			SRNotify( SRRunSelfTest() );
-		if ( SRConsumeToggle( 'SRCalibrate' ) )
-		{
-			overlay.Calibrate( thePlayer.GetWorldPosition() );
-			SRNotify( "SR calibrate: 5 lines north of you, west->east = 1..5. Stand still." );
-		}
 	}
 }
