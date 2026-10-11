@@ -33,5 +33,7 @@ class SRRouter
 	{
 		if ( SRConsumeToggle( 'SRStatus' ) )
 			SRNotify( "Signpost Router: " + settings.ToString() );
+		if ( SRConsumeToggle( 'SRSelfTest' ) )
+			SRNotify( SRRunSelfTest() );
 	}
 }
