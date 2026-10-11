@@ -10,9 +10,9 @@ function SRWipeTestStep( minimap : CR4HudModuleMinimap2, stage : int, run : int,
 
 	if ( stage == 2 )
 	{
-		ids.PushBack( 1 );
+		ids.PushBack( 790000 + run * 2 + 1 );	// line X itself
 		minimap.DeleteMapPaths( ids );
-		SRNotify( "Wipe test 2/3: deleted unused id. Is line X (west) gone?" );
+		SRNotify( "Wipe test 2/3: deleted line X. Is X (west) gone?" );
 		return;
 	}
 
