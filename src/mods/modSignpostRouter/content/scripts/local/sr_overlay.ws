@@ -1,32 +1,43 @@
-// Signpost Router - draws the suggested route on the minimap with AddMapPath (absolute world coords).
+// Signpost Router - draws the suggested route on the minimap as dots, with AddMapPath (absolute world coords).
 //
 // Minimap path rules, all verified in game on 5.0:
 // 1. DeleteMapPaths of an existing path wipes EVERY path; paths added later draw fine.
-// 2. Only the last AddMapPath sent in a frame takes effect, so the two legs go out on separate frames.
-// 3. AddMapPath with an id the minimap already knows is ignored, so every send uses fresh ids.
-// A redraw is therefore: delete, wait DELETE_GAP, send the entry leg, send the exit leg next frame.
+// 2. Only the last AddMapPath sent in a frame takes effect, so pieces go out one per frame.
+// 3. AddMapPath with an id the minimap already knows is ignored, so every piece gets a fresh id.
+// A redraw is therefore: delete, wait DELETE_GAP, then send the queued pieces one per frame.
+
+struct SRDot
+{
+	var from : Vector;
+	var to : Vector;
+	var color : int;
+	var width : float;
+}
 
 class SROverlay
 {
 	private var minimap : CR4HudModuleMinimap2;
-	private var drawn : bool;
-	private var phase : int;				// 0 idle | 1 waiting after a delete | 2 send entry leg | 3 send exit leg
+	private var queue : array< SRDot >;
+	private var sentIds : array< int >;
+	private var qIndex : int;
+	private var phase : int;				// 0 idle | 1 waiting after a delete | 2 sending one piece per frame
 	private var phaseTime : float;
-	private var pendingEntry : array< Vector >;
-	private var pendingExit : array< Vector >;
+	private var nextId : int;
 	private var wipes : int;
 	private var sends : int;
-	private var curEntryId : int;
-	private var curExitId : int;
-	private var nextId : int;
 
 	private const var DELETE_GAP : float;		default DELETE_GAP = 0.3;
 	private const var ID_FIRST : int;			default ID_FIRST = 778100;
 	private const var ID_LAST : int;			default ID_LAST = 799000;
 
-	// -1 = opaque white and width 20 are verified visible on 5.0.
-	private const var LINE_COLOR : int;			default LINE_COLOR = -1;
-	private const var LINE_WIDTH : float;		default LINE_WIDTH = 20.0;
+	// Dots: -1 = opaque white (verified visible). Recoloured after the calibration test.
+	private const var DOT_COLOR : int;			default DOT_COLOR = -1;
+	private const var DOT_WIDTH : float;		default DOT_WIDTH = 20.0;
+	private const var DOT_LEN : float;			default DOT_LEN = 2.0;
+	private const var DOT_SPACING : float;		default DOT_SPACING = 8.0;
+	private const var DOT_RANGE : float;		default DOT_RANGE = 150.0;	// only dots this close to the player are drawn
+	private const var MAX_DOTS : int;			default MAX_DOTS = 25;
+
 	private const var STEP : float;				default STEP = 15.0;
 	private const var MIN_POINTS : int;			default MIN_POINTS = 12;
 	private const var MAX_POINTS : int;			default MAX_POINTS = 120;
@@ -40,56 +51,70 @@ class SROverlay
 
 	public function IsDrawn() : bool
 	{
-		return drawn || phase != 0;
+		return sentIds.Size() > 0 || phase != 0;
 	}
 
 	// Call once per tick, before anything else touches the overlay.
 	public function Flush()
 	{
 		if ( phase == 1 && theGame.GetEngineTimeAsSeconds() - phaseTime >= DELETE_GAP )
+		{
 			phase = 2;
-
-		if ( phase == 2 )
-		{
-			nextId += 2;
-			if ( nextId < ID_FIRST || nextId > ID_LAST )
-				nextId = ID_FIRST;
-			curEntryId = nextId;
-			curExitId = nextId + 1;
-			SendPath( curEntryId, pendingEntry );
-			drawn = true;
-			sends += 1;
-			phase = 3;
+			qIndex = 0;
 		}
-		else if ( phase == 3 )
+		if ( phase != 2 )
+			return;
+
+		if ( qIndex < queue.Size() )
 		{
-			SendPath( curExitId, pendingExit );
+			SendDot( queue[ qIndex ] );
+			qIndex += 1;
+		}
+		if ( qIndex >= queue.Size() )
+		{
 			phase = 0;
+			sends += 1;
 		}
 	}
 
 	public function Draw( player : Vector, entryPos : Vector, exitPos : Vector, target : Vector )
 	{
-		pendingEntry = BuildLeg( player, entryPos, true, player );
-		pendingExit = BuildLeg( exitPos, target, false, player );
-		if ( drawn )
+		queue.Clear();
+		AddDots( BuildLeg( player, entryPos, true, player ), player );
+		AddDots( BuildLeg( exitPos, target, false, player ), player );
+		StartSend();
+	}
+
+	// Five long test lines north of the player, west -> east, one colour encoding each.
+	// 1 white -1 (control) | 2 0xFFFF0000 | 3 0xFF0000FF | 4 0x00FF00FF | 5 0x8000FF00
+	public function Calibrate( base : Vector )
+	{
+		var colors : array< int >;
+		var line : SRDot;
+		var i : int;
+
+		colors.PushBack( -1 );
+		colors.PushBack( -65536 );
+		colors.PushBack( -16776961 );
+		colors.PushBack( 16711935 );
+		colors.PushBack( -2147418368 );
+
+		queue.Clear();
+		for ( i = 0; i < colors.Size(); i += 1 )
 		{
-			DeleteCurrent();
-			phase = 1;
-			phaseTime = theGame.GetEngineTimeAsSeconds();
+			line.from = base + Vector( ( (float)( i - 2 ) ) * 15.0, 5, 0 );
+			line.to = line.from + Vector( 0, 60, 0 );
+			line.color = colors[ i ];
+			line.width = 20.0;
+			queue.PushBack( line );
 		}
-		else if ( phase != 3 )
-		{
-			// Nothing on screen yet. Still wait DELETE_GAP: the router may have just placed a pin,
-			// and a pin change wipes paths too.
-			phase = 1;
-			phaseTime = theGame.GetEngineTimeAsSeconds();
-		}
+		StartSend();
 	}
 
 	public function Clear()
 	{
 		phase = 0;
+		queue.Clear();
 		DeleteCurrent();
 	}
 
@@ -97,9 +122,9 @@ class SROverlay
 	public function OnPathsWiped()
 	{
 		wipes += 1;
-		if ( drawn )
+		if ( sentIds.Size() > 0 )
 		{
-			drawn = false;
+			sentIds.Clear();
 			phase = 1;
 			phaseTime = theGame.GetEngineTimeAsSeconds();
 		}
@@ -115,44 +140,73 @@ class SROverlay
 		return sends;
 	}
 
-	// TEMPORARY diagnostic: send the current route legs once, one per frame via the normal path.
-	public function DebugSendRoute() : string
+	private function StartSend()
 	{
-		var e : int;
-
-		e = pendingEntry.Size();
-		if ( phase == 0 )
-			phase = 2;
-		if ( e > 0 )
-			return "Route test: entry " + e + " pts from " + RoundF( pendingEntry[0].X ) + "," + RoundF( pendingEntry[0].Y )
-				+ " to " + RoundF( pendingEntry[e - 1].X ) + "," + RoundF( pendingEntry[e - 1].Y ) + " | exit " + pendingExit.Size() + " pts";
-		return "Route test: no route legs stored";
+		DeleteCurrent();
+		phase = 1;
+		phaseTime = theGame.GetEngineTimeAsSeconds();
 	}
 
 	private function DeleteCurrent()
 	{
-		var ids : array< int >;
-
-		if ( !drawn || !minimap )
+		if ( sentIds.Size() == 0 || !minimap )
 			return;
-		ids.PushBack( curEntryId );
-		ids.PushBack( curExitId );
-		minimap.DeleteMapPaths( ids );
-		drawn = false;
+		minimap.DeleteMapPaths( sentIds );
+		sentIds.Clear();
 	}
 
-	private function SendPath( id : int, points : array< Vector > )
+	private function SendDot( dot : SRDot )
 	{
 		var path : SMapPathInstance;
 
-		if ( !minimap || points.Size() < 2 )
+		if ( !minimap )
 			return;
-		path.id = id;
+		nextId += 1;
+		if ( nextId < ID_FIRST || nextId > ID_LAST )
+			nextId = ID_FIRST;
+		path.id = nextId;
 		path.position = Vector( 0, 0, 0 );
-		path.color = LINE_COLOR;
-		path.lineWidth = LINE_WIDTH;
-		path.splinePoints = points;
+		path.color = dot.color;
+		path.lineWidth = dot.width;
+		path.splinePoints.PushBack( dot.from );
+		path.splinePoints.PushBack( ( dot.from + dot.to ) * 0.5 );
+		path.splinePoints.PushBack( dot.to );
 		minimap.AddMapPath( path );
+		sentIds.PushBack( nextId );
+	}
+
+	// Queue a short dash every DOT_SPACING metres along the polyline, only within DOT_RANGE of the player.
+	private function AddDots( points : array< Vector >, player : Vector )
+	{
+		var dot : SRDot;
+		var a, b, dir, p : Vector;
+		var segLen, along : float;
+		var i : int;
+
+		dot.color = DOT_COLOR;
+		dot.width = DOT_WIDTH;
+		along = DOT_SPACING * 0.5;
+		for ( i = 0; i + 1 < points.Size() && queue.Size() < MAX_DOTS; i += 1 )
+		{
+			a = points[ i ];
+			b = points[ i + 1 ];
+			segLen = VecDistance2D( a, b );
+			if ( segLen <= 0 )
+				continue;
+			dir = VecNormalize2D( b - a );
+			while ( along < segLen && queue.Size() < MAX_DOTS )
+			{
+				p = a + dir * along;
+				if ( VecDistance2D( p, player ) <= DOT_RANGE )
+				{
+					dot.from = p;
+					dot.to = p + dir * DOT_LEN;
+					queue.PushBack( dot );
+				}
+				along += DOT_SPACING;
+			}
+			along -= segLen;
+		}
 	}
 
 	// Evenly spaced points from 'from' to 'to'. With nudge, points within NUDGE_RANGE of the player are

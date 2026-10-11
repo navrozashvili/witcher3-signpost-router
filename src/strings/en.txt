@@ -7,10 +7,7 @@ preset_value_SRModeOverlay|Overlay line only
 option_SRPenalty|Fast travel penalty (m)
 option_SRDetour|Detour factor (%)
 option_SRMinSaving|Minimum saving (m)
-option_SRShowLine|Show route line
+option_SRShowLine|Show route dots
 option_SRStatus|Show status (one-shot)
 option_SRSelfTest|Run self-test (one-shot)
 option_SRCalibrate|Calibrate line colours (one-shot)
-option_SRLineTest|Line rendering test (one-shot)
-option_SRWipeTest|Wipe test (one-shot)
-option_SRRouteTest|Route test (one-shot)

@@ -22,10 +22,6 @@ class SRRouter
 	private var lastWorldPath : string;
 	private var adopted : bool;
 	private var pendingForce : bool;
-	private var wtStage : int;
-	private var wtTime : float;
-	private var wtRun : int;
-	private var wtBase : Vector;
 
 	private const var EVAL_INTERVAL : float;		default EVAL_INTERVAL = 2.0;
 	private const var MOVE_THRESHOLD : float;		default MOVE_THRESHOLD = 20.0;
@@ -60,14 +56,6 @@ class SRRouter
 			OnTeleported();
 		lastTickPos = pos;
 		lastWorldPath = worldPath;
-
-		// Temporary wipe-test sequencer (see sr_linetest.ws).
-		if ( wtStage > 0 && wtStage < 3 && theGame.GetEngineTimeAsSeconds() - wtTime >= 2.0 )
-		{
-			wtStage += 1;
-			wtTime = theGame.GetEngineTimeAsSeconds();
-			SRWipeTestStep( minimap, wtStage, wtRun, wtBase );
-		}
 
 		now = theGame.GetEngineTimeAsSeconds();
 		if ( now - lastEvalTime < EVAL_INTERVAL )
@@ -245,8 +233,6 @@ class SRRouter
 
 	private function HandleDebugToggles()
 	{
-		var pp : Vector;
-
 		if ( SRConsumeToggle( 'SRStatus' ) )
 			SRNotify( "SR " + StateName() + " | " + settings.ToString()
 				+ " | direct=" + RoundF( plan.directCost ) + " route=" + RoundF( plan.routeCost )
@@ -254,22 +240,10 @@ class SRRouter
 				+ " | " + pins.ToString() + " line=" + SRBool( overlay.IsDrawn() ) + " wipes=" + overlay.GetWipes() + " sends=" + overlay.GetSends() );
 		if ( SRConsumeToggle( 'SRSelfTest' ) )
 			SRNotify( SRRunSelfTest() );
-			if ( SRConsumeToggle( 'SRCalibrate' ) )
-				SRCalibrate( minimap );
-			if ( SRConsumeToggle( 'SRLineTest' ) )
-				SRLineTest( minimap );
-			if ( SRConsumeToggle( 'SRRouteTest' ) )
-			{
-				pp = thePlayer.GetWorldPosition();
-				SRNotify( overlay.DebugSendRoute() + " | player " + RoundF( pp.X ) + "," + RoundF( pp.Y ) );
-			}
-			if ( SRConsumeToggle( 'SRWipeTest' ) )
-			{
-				wtRun += 1;
-				wtStage = 1;
-				wtTime = theGame.GetEngineTimeAsSeconds();
-				wtBase = thePlayer.GetWorldPosition();
-				SRWipeTestStep( minimap, wtStage, wtRun, wtBase );
-			}
+		if ( SRConsumeToggle( 'SRCalibrate' ) )
+		{
+			overlay.Calibrate( thePlayer.GetWorldPosition() );
+			SRNotify( "SR calibrate: 5 lines north of you, west->east = 1..5. Stand still." );
+		}
 	}
 }
