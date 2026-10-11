@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UserConfig>
+	<Group id="SignpostRouter" displayName="Mods.SignpostRouter" tags="nonSyncable">
+		<VisibleVars>
+			<Var id="SREnabled" displayName="SREnabled" displayType="TOGGLE" tags="nonSyncable"/>
+			<Var id="SRMode" displayName="SRMode" displayType="OPTIONS" tags="nonSyncable">
+				<OptionsArray>
+					<Option id="0" displayName="SRModeRedirect">
+						<Entry varId="SRMode" value="0"/>
+					</Option>
+					<Option id="1" displayName="SRModeOverlay">
+						<Entry varId="SRMode" value="1"/>
+					</Option>
+				</OptionsArray>
+			</Var>
+			<Var id="SRPenalty" displayName="SRPenalty" displayType="SLIDER;0;500;50" tags="nonSyncable"/>
+			<Var id="SRDetour" displayName="SRDetour" displayType="SLIDER;100;200;20" tags="nonSyncable"/>
+			<Var id="SRMinSaving" displayName="SRMinSaving" displayType="SLIDER;0;1000;40" tags="nonSyncable"/>
+			<Var id="SRShowLine" displayName="SRShowLine" displayType="TOGGLE" tags="nonSyncable"/>
+			<Var id="SRStatus" displayName="SRStatus" displayType="TOGGLE" tags="nonSyncable"/>
+			<Var id="SRSelfTest" displayName="SRSelfTest" displayType="TOGGLE" tags="nonSyncable"/>
+		</VisibleVars>
+	</Group>
+</UserConfig>
