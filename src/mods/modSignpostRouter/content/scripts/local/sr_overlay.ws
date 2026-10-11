@@ -11,8 +11,13 @@ class SROverlay
 	private var wipes : int;
 	private var sends : int;
 	private var lastSendTime : float;
+	private var curEntryId : int;
+	private var curExitId : int;
+	private var nextId : int;
 
-	private const var RESEND_INTERVAL : float;	default RESEND_INTERVAL = 0.5;
+	private const var RESEND_INTERVAL : float;	default RESEND_INTERVAL = 2.0;
+	private const var ID_FIRST : int;			default ID_FIRST = 778100;
+	private const var ID_LAST : int;			default ID_LAST = 799000;
 
 	// -1 = opaque white and width 20 are verified visible on 5.0; Task 6 recalibrates to subtle green.
 	private const var LINE_COLOR : int;			default LINE_COLOR = -1;
@@ -22,8 +27,6 @@ class SROverlay
 	private const var MAX_POINTS : int;			default MAX_POINTS = 120;
 	private const var NUDGE_RANGE : float;		default NUDGE_RANGE = 100.0;
 	private const var NAV_RADIUS : float;		default NAV_RADIUS = 0.4;
-	private const var ID_ENTRY : int;			default ID_ENTRY = 778101;
-	private const var ID_EXIT : int;			default ID_EXIT = 778102;
 
 	public function Init( owner : CR4HudModuleMinimap2 )
 	{
@@ -35,24 +38,34 @@ class SROverlay
 		return drawn || pending;
 	}
 
-	// Verified in game: a DeleteMapPaths call wipes every path added in the same tick.
-	// So a redraw deletes now and sends the new lines on the next tick. Call Flush() once per tick,
-	// before anything else touches the overlay.
-	// The minimap also clears paths internally while you move, without any script hook (wipes stayed 0),
-	// so drawn lines are re-sent every RESEND_INTERVAL seconds.
+	// Verified in game:
+	// - the minimap ignores AddMapPath for an id it already knows, so every send uses fresh ids;
+	// - a DeleteMapPaths call wipes paths added in the same tick, so deletes and adds go in separate ticks;
+	// - placing a map pin wipes the drawn lines, so they are re-sent every RESEND_INTERVAL seconds.
+	// Call Flush() once per tick, before anything else touches the overlay.
 	public function Flush()
 	{
 		var now : float;
 
 		now = theGame.GetEngineTimeAsSeconds();
-		if ( !deletedThisTick && ( pending || ( drawn && now - lastSendTime >= RESEND_INTERVAL ) ) )
+		if ( pending && !deletedThisTick )
 		{
-			SendPath( ID_ENTRY, pendingEntry );
-			SendPath( ID_EXIT, pendingExit );
+			nextId += 2;
+			if ( nextId < ID_FIRST || nextId > ID_LAST )
+				nextId = ID_FIRST;
+			curEntryId = nextId;
+			curExitId = nextId + 1;
+			SendPath( curEntryId, pendingEntry );
+			SendPath( curExitId, pendingExit );
 			pending = false;
 			drawn = true;
 			lastSendTime = now;
 			sends += 1;
+		}
+		else if ( drawn && now - lastSendTime >= RESEND_INTERVAL )
+		{
+			DeleteCurrent();
+			pending = true;		// sent with fresh ids on the next tick
 		}
 		deletedThisTick = false;
 	}
@@ -67,11 +80,7 @@ class SROverlay
 	public function OnPathsWiped()
 	{
 		wipes += 1;
-		if ( !drawn )
-			return;
-		drawn = false;
-		pending = true;
-		deletedThisTick = true;
+		lastSendTime = -1000;	// force a fresh-id resend on the next ticks
 	}
 
 	public function GetWipes() : int
@@ -91,13 +100,18 @@ class SROverlay
 
 	public function Clear()
 	{
+		pending = false;
+		DeleteCurrent();
+	}
+
+	private function DeleteCurrent()
+	{
 		var ids : array< int >;
 
-		pending = false;
 		if ( !drawn || !minimap )
 			return;
-		ids.PushBack( ID_ENTRY );
-		ids.PushBack( ID_EXIT );
+		ids.PushBack( curEntryId );
+		ids.PushBack( curExitId );
 		minimap.DeleteMapPaths( ids );
 		drawn = false;
 		deletedThisTick = true;
