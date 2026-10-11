@@ -21,6 +21,7 @@ class SRRouter
 	private var lastTickPos : Vector;
 	private var lastWorldPath : string;
 	private var adopted : bool;
+	private var pendingForce : bool;
 
 	private const var EVAL_INTERVAL : float;		default EVAL_INTERVAL = 2.0;
 	private const var MOVE_THRESHOLD : float;		default MOVE_THRESHOLD = 20.0;
@@ -60,6 +61,8 @@ class SRRouter
 		lastEvalTime = now;
 
 		settingsChanged = settings.Load();
+		if ( settingsChanged )
+			pendingForce = true;
 		HandleDebugToggles();
 
 		if ( !adopted )
@@ -77,7 +80,8 @@ class SRRouter
 		if ( IsPaused() )
 			return;
 
-		Evaluate( pos, worldPath, settingsChanged );
+		Evaluate( pos, worldPath, pendingForce );
+		pendingForce = false;
 	}
 
 	private function Evaluate( pos : Vector, worldPath : string, force : bool )
@@ -106,7 +110,7 @@ class SRRouter
 
 		if ( !newPlan.useSignposts )
 		{
-			pins.Clear();
+			ClearPins();
 			overlay.Clear();
 			if ( state != SRS_Direct )
 				SRLog( "Direct: walk " + RoundF( newPlan.directCost ) );
@@ -124,7 +128,7 @@ class SRRouter
 		}
 		else
 		{
-			pins.Clear();
+			ClearPins();
 		}
 
 		if ( settings.showLine )
@@ -192,11 +196,18 @@ class SRRouter
 		lastEvalTime = theGame.GetEngineTimeAsSeconds();	// give the new area 2 s to stream in
 	}
 
+	// Detect a player-placed waypoint first, so Clear() never restores an old pin over it.
+	private function ClearPins()
+	{
+		pins.CheckUserOverride();
+		pins.Clear();
+	}
+
 	private function Reset( reason : string )
 	{
 		var empty : SRPlan;
 
-		pins.Clear();
+		ClearPins();
 		overlay.Clear();
 		state = SRS_Idle;
 		plan = empty;
