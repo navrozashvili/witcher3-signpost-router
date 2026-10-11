@@ -13,7 +13,7 @@ class SRRouter
 	private var settings : SRSettings;
 	private var pins : SRPinManager;
 	private var overlay : SROverlay;
-	private var state : ESRState;
+	private var routerState : ESRState;
 	private var plan : SRPlan;
 	private var lastEvalTime : float;
 	private var lastEvalPos : Vector;
@@ -35,7 +35,7 @@ class SRRouter
 		overlay = new SROverlay in this;
 		overlay.Init( owner );
 		settings.Load();
-		state = SRS_Idle;
+		routerState = SRS_Idle;
 		SRLog( "Router initialised: " + settings.ToString() );
 	}
 
@@ -73,7 +73,7 @@ class SRRouter
 
 		if ( !settings.enabled )
 		{
-			if ( state != SRS_Idle || pins.HasOurPin() || overlay.IsDrawn() )
+			if ( routerState != SRS_Idle || pins.HasOurPin() || overlay.IsDrawn() )
 				Reset( "disabled" );
 			return;
 		}
@@ -93,13 +93,13 @@ class SRRouter
 
 		if ( !FindTarget( worldPath, pos, target, isUserPin ) )
 		{
-			if ( state != SRS_Idle || pins.HasOurPin() || overlay.IsDrawn() )
+			if ( routerState != SRS_Idle || pins.HasOurPin() || overlay.IsDrawn() )
 				Reset( "no target" );
 			return;
 		}
 
 		targetMoved = VecDistance2D( target, lastTarget ) >= 1.0;
-		if ( !force && !targetMoved && state != SRS_Idle && VecDistance2D( pos, lastEvalPos ) < MOVE_THRESHOLD )
+		if ( !force && !targetMoved && routerState != SRS_Idle && VecDistance2D( pos, lastEvalPos ) < MOVE_THRESHOLD )
 			return;
 		if ( targetMoved )
 			pins.ResetOverride();
@@ -112,9 +112,9 @@ class SRRouter
 		{
 			ClearPins();
 			overlay.Clear();
-			if ( state != SRS_Direct )
+			if ( routerState != SRS_Direct )
 				SRLog( "Direct: walk " + RoundF( newPlan.directCost ) );
-			state = SRS_Direct;
+			routerState = SRS_Direct;
 			plan = newPlan;
 			return;
 		}
@@ -136,10 +136,10 @@ class SRRouter
 		else
 			overlay.Clear();
 
-		if ( state != SRS_Guiding || newPlan.entryTag != plan.entryTag || newPlan.exitTag != plan.exitTag )
+		if ( routerState != SRS_Guiding || newPlan.entryTag != plan.entryTag || newPlan.exitTag != plan.exitTag )
 			SRLog( "Guiding via " + NameToString( newPlan.entryTag ) + " -> " + NameToString( newPlan.exitTag )
 				+ " route " + RoundF( newPlan.routeCost ) + " vs direct " + RoundF( newPlan.directCost ) );
-		state = SRS_Guiding;
+		routerState = SRS_Guiding;
 		plan = newPlan;
 	}
 
@@ -209,7 +209,7 @@ class SRRouter
 
 		ClearPins();
 		overlay.Clear();
-		state = SRS_Idle;
+		routerState = SRS_Idle;
 		plan = empty;
 		lastTarget = Vector( 0, 0, 0 );
 		SRLog( "Reset: " + reason );
@@ -217,9 +217,9 @@ class SRRouter
 
 	private function StateName() : string
 	{
-		if ( state == SRS_Guiding )
+		if ( routerState == SRS_Guiding )
 			return "GUIDING";
-		if ( state == SRS_Direct )
+		if ( routerState == SRS_Direct )
 			return "DIRECT";
 		return "IDLE";
 	}
