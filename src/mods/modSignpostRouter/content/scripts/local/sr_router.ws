@@ -245,6 +245,8 @@ class SRRouter
 
 	private function HandleDebugToggles()
 	{
+		var pp : Vector;
+
 		if ( SRConsumeToggle( 'SRStatus' ) )
 			SRNotify( "SR " + StateName() + " | " + settings.ToString()
 				+ " | direct=" + RoundF( plan.directCost ) + " route=" + RoundF( plan.routeCost )
@@ -257,7 +259,10 @@ class SRRouter
 			if ( SRConsumeToggle( 'SRLineTest' ) )
 				SRLineTest( minimap );
 			if ( SRConsumeToggle( 'SRRouteTest' ) )
-				SRNotify( overlay.DebugSendRoute() + " | player " + RoundF( thePlayer.GetWorldPosition().X ) + "," + RoundF( thePlayer.GetWorldPosition().Y ) );
+			{
+				pp = thePlayer.GetWorldPosition();
+				SRNotify( overlay.DebugSendRoute() + " | player " + RoundF( pp.X ) + "," + RoundF( pp.Y ) );
+			}
 			if ( SRConsumeToggle( 'SRWipeTest' ) )
 			{
 				wtRun += 1;
