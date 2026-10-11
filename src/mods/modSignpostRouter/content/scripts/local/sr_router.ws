@@ -235,5 +235,7 @@ class SRRouter
 			SRNotify( SRRunSelfTest() );
 			if ( SRConsumeToggle( 'SRCalibrate' ) )
 				SRCalibrate( minimap );
+			if ( SRConsumeToggle( 'SRLineTest' ) )
+				SRLineTest( minimap );
 	}
 }
