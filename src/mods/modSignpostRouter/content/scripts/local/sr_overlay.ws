@@ -1,25 +1,30 @@
 // Signpost Router - draws the suggested route on the minimap with AddMapPath (absolute world coords).
+//
+// Minimap path rules, all verified in game on 5.0:
+// 1. DeleteMapPaths of an existing path wipes EVERY path; paths added later draw fine.
+// 2. Only the last AddMapPath sent in a frame takes effect, so the two legs go out on separate frames.
+// 3. AddMapPath with an id the minimap already knows is ignored, so every send uses fresh ids.
+// A redraw is therefore: delete, wait DELETE_GAP, send the entry leg, send the exit leg next frame.
 
 class SROverlay
 {
 	private var minimap : CR4HudModuleMinimap2;
 	private var drawn : bool;
-	private var pending : bool;
-	private var deletedThisTick : bool;
+	private var phase : int;				// 0 idle | 1 waiting after a delete | 2 send entry leg | 3 send exit leg
+	private var phaseTime : float;
 	private var pendingEntry : array< Vector >;
 	private var pendingExit : array< Vector >;
 	private var wipes : int;
 	private var sends : int;
-	private var lastSendTime : float;
 	private var curEntryId : int;
 	private var curExitId : int;
 	private var nextId : int;
 
-	private const var RESEND_INTERVAL : float;	default RESEND_INTERVAL = 2.0;
+	private const var DELETE_GAP : float;		default DELETE_GAP = 0.3;
 	private const var ID_FIRST : int;			default ID_FIRST = 778100;
 	private const var ID_LAST : int;			default ID_LAST = 799000;
 
-	// -1 = opaque white and width 20 are verified visible on 5.0; Task 6 recalibrates to subtle green.
+	// -1 = opaque white and width 20 are verified visible on 5.0.
 	private const var LINE_COLOR : int;			default LINE_COLOR = -1;
 	private const var LINE_WIDTH : float;		default LINE_WIDTH = 20.0;
 	private const var STEP : float;				default STEP = 15.0;
@@ -35,20 +40,16 @@ class SROverlay
 
 	public function IsDrawn() : bool
 	{
-		return drawn || pending;
+		return drawn || phase != 0;
 	}
 
-	// Verified in game:
-	// - the minimap ignores AddMapPath for an id it already knows, so every send uses fresh ids;
-	// - a DeleteMapPaths call wipes paths added in the same tick, so deletes and adds go in separate ticks;
-	// - placing a map pin wipes the drawn lines, so they are re-sent every RESEND_INTERVAL seconds.
-	// Call Flush() once per tick, before anything else touches the overlay.
+	// Call once per tick, before anything else touches the overlay.
 	public function Flush()
 	{
-		var now : float;
+		if ( phase == 1 && theGame.GetEngineTimeAsSeconds() - phaseTime >= DELETE_GAP )
+			phase = 2;
 
-		now = theGame.GetEngineTimeAsSeconds();
-		if ( pending && !deletedThisTick )
+		if ( phase == 2 )
 		{
 			nextId += 2;
 			if ( nextId < ID_FIRST || nextId > ID_LAST )
@@ -56,47 +57,52 @@ class SROverlay
 			curEntryId = nextId;
 			curExitId = nextId + 1;
 			SendPath( curEntryId, pendingEntry );
-			SendPath( curExitId, pendingExit );
-			pending = false;
 			drawn = true;
-			lastSendTime = now;
 			sends += 1;
+			phase = 3;
 		}
-		else if ( drawn && now - lastSendTime >= RESEND_INTERVAL )
+		else if ( phase == 3 )
+		{
+			SendPath( curExitId, pendingExit );
+			phase = 0;
+		}
+	}
+
+	public function Draw( player : Vector, entryPos : Vector, exitPos : Vector, target : Vector )
+	{
+		pendingEntry = BuildLeg( player, entryPos, true, player );
+		pendingExit = BuildLeg( exitPos, target, false, player );
+		if ( drawn )
 		{
 			DeleteCurrent();
-			pending = true;		// sent with fresh ids on the next tick
+			phase = 1;
+			phaseTime = theGame.GetEngineTimeAsSeconds();
 		}
-		deletedThisTick = false;
+		else if ( phase != 3 )
+		{
+			// Nothing on screen yet. Still wait DELETE_GAP: the router may have just placed a pin,
+			// and a pin change wipes paths too.
+			phase = 1;
+			phaseTime = theGame.GetEngineTimeAsSeconds();
+		}
 	}
 
-	// TEMPORARY diagnostic: send the current route legs once under fresh ids, no deletes.
-	public function DebugSendRoute() : string
+	public function Clear()
 	{
-		var e, x : int;
-
-		e = pendingEntry.Size();
-		x = pendingExit.Size();
-		SendPath( 795001 + sends * 2, pendingEntry );
-		SendPath( 795002 + sends * 2, pendingExit );
-		sends += 1;
-		if ( e > 0 )
-			return "Route test: entry " + e + " pts from " + RoundF( pendingEntry[0].X ) + "," + RoundF( pendingEntry[0].Y )
-				+ " to " + RoundF( pendingEntry[e - 1].X ) + "," + RoundF( pendingEntry[e - 1].Y ) + " | exit " + x + " pts";
-		return "Route test: no route legs stored (entry 0 pts, exit " + x + " pts)";
+		phase = 0;
+		DeleteCurrent();
 	}
 
-	public function GetSends() : int
-	{
-		return sends;
-	}
-
-	// Verified in game: placing a map pin (and the game's own path refreshes) wipes all minimap paths.
-	// Called from the DeleteMapPathsFromMinimap hook: re-send our last lines on a later tick.
+	// Called from the DeleteMapPathsFromMinimap hook: the game wiped paths, so send ours again.
 	public function OnPathsWiped()
 	{
 		wipes += 1;
-		lastSendTime = -1000;	// force a fresh-id resend on the next ticks
+		if ( drawn )
+		{
+			drawn = false;
+			phase = 1;
+			phaseTime = theGame.GetEngineTimeAsSeconds();
+		}
 	}
 
 	public function GetWipes() : int
@@ -104,20 +110,23 @@ class SROverlay
 		return wipes;
 	}
 
-	public function Draw( player : Vector, entryPos : Vector, exitPos : Vector, target : Vector )
+	public function GetSends() : int
 	{
-		Clear();
-		pendingEntry = BuildLeg( player, entryPos, true, player );
-		pendingExit = BuildLeg( exitPos, target, false, player );
-		pending = true;
-		if ( !deletedThisTick )
-			Flush();
+		return sends;
 	}
 
-	public function Clear()
+	// TEMPORARY diagnostic: send the current route legs once, one per frame via the normal path.
+	public function DebugSendRoute() : string
 	{
-		pending = false;
-		DeleteCurrent();
+		var e : int;
+
+		e = pendingEntry.Size();
+		if ( phase == 0 )
+			phase = 2;
+		if ( e > 0 )
+			return "Route test: entry " + e + " pts from " + RoundF( pendingEntry[0].X ) + "," + RoundF( pendingEntry[0].Y )
+				+ " to " + RoundF( pendingEntry[e - 1].X ) + "," + RoundF( pendingEntry[e - 1].Y ) + " | exit " + pendingExit.Size() + " pts";
+		return "Route test: no route legs stored";
 	}
 
 	private function DeleteCurrent()
@@ -130,7 +139,6 @@ class SROverlay
 		ids.PushBack( curExitId );
 		minimap.DeleteMapPaths( ids );
 		drawn = false;
-		deletedThisTick = true;
 	}
 
 	private function SendPath( id : int, points : array< Vector > )
