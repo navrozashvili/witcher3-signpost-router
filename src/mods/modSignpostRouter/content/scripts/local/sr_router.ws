@@ -237,7 +237,7 @@ class SRRouter
 			SRNotify( "SR " + StateName() + " | " + settings.ToString()
 				+ " | direct=" + RoundF( plan.directCost ) + " route=" + RoundF( plan.routeCost )
 				+ " " + NameToString( plan.entryTag ) + "->" + NameToString( plan.exitTag )
-				+ " | " + pins.ToString() + " line=" + SRBool( overlay.IsDrawn() ) + " wipes=" + overlay.GetWipes() );
+				+ " | " + pins.ToString() + " line=" + SRBool( overlay.IsDrawn() ) + " wipes=" + overlay.GetWipes() + " sends=" + overlay.GetSends() );
 		if ( SRConsumeToggle( 'SRSelfTest' ) )
 			SRNotify( SRRunSelfTest() );
 			if ( SRConsumeToggle( 'SRCalibrate' ) )

@@ -9,6 +9,10 @@ class SROverlay
 	private var pendingEntry : array< Vector >;
 	private var pendingExit : array< Vector >;
 	private var wipes : int;
+	private var sends : int;
+	private var lastSendTime : float;
+
+	private const var RESEND_INTERVAL : float;	default RESEND_INTERVAL = 0.5;
 
 	// -1 = opaque white and width 20 are verified visible on 5.0; Task 6 recalibrates to subtle green.
 	private const var LINE_COLOR : int;			default LINE_COLOR = -1;
@@ -34,16 +38,28 @@ class SROverlay
 	// Verified in game: a DeleteMapPaths call wipes every path added in the same tick.
 	// So a redraw deletes now and sends the new lines on the next tick. Call Flush() once per tick,
 	// before anything else touches the overlay.
+	// The minimap also clears paths internally while you move, without any script hook (wipes stayed 0),
+	// so drawn lines are re-sent every RESEND_INTERVAL seconds.
 	public function Flush()
 	{
-		if ( pending && !deletedThisTick )
+		var now : float;
+
+		now = theGame.GetEngineTimeAsSeconds();
+		if ( !deletedThisTick && ( pending || ( drawn && now - lastSendTime >= RESEND_INTERVAL ) ) )
 		{
 			SendPath( ID_ENTRY, pendingEntry );
 			SendPath( ID_EXIT, pendingExit );
 			pending = false;
 			drawn = true;
+			lastSendTime = now;
+			sends += 1;
 		}
 		deletedThisTick = false;
+	}
+
+	public function GetSends() : int
+	{
+		return sends;
 	}
 
 	// Verified in game: placing a map pin (and the game's own path refreshes) wipes all minimap paths.
