@@ -13,6 +13,7 @@ class SRPinManager
 	private var savedY : float;
 	private var overridden : bool;
 	private var failed : bool;
+	private var savedCoexists : bool;
 
 	private const var WAYPOINT_TYPE : int;	default WAYPOINT_TYPE = 0;
 	private const var SAME_POS : float;		default SAME_POS = 1.0;
@@ -39,6 +40,9 @@ class SRPinManager
 			return true;
 		if ( ourActive )
 			RemoveOurs();
+		// A waypoint already sits on this signpost (player's or a leftover): it already leads there; leave it alone.
+		if ( WaypointExistsAt( pos.X, pos.Y ) )
+			return true;
 		if ( !savedUser && FindUserWaypoint( ua, ux, uy ) )
 		{
 			savedUser = true;
@@ -58,6 +62,8 @@ class SRPinManager
 		ourArea = area;
 		ourX = pos.X;
 		ourY = pos.Y;
+		// With a waypoint limit above 1 the player's pin survives our placement; remember that to detect its deletion.
+		savedCoexists = savedUser && WaypointExistsAt( savedX, savedY );
 		return true;
 	}
 
@@ -73,19 +79,48 @@ class SRPinManager
 		}
 	}
 
-	// If our pin vanished (player removed or replaced it), the player's choice wins until the target changes.
+	// The player's choice wins until the target changes: our pin vanished, or they added another waypoint.
 	public function CheckUserOverride()
 	{
-		var a : name;
-		var x, y : float;
-
-		if ( !ourActive || WaypointExistsAt( ourX, ourY ) )
+		if ( !ourActive )
 			return;
-		ourActive = false;
+
+		// The player deleted the waypoint we were keeping (only detectable if it survived our placement).
+		if ( savedUser && savedCoexists && !WaypointExistsAt( savedX, savedY ) )
+			savedUser = false;
+
+		if ( !WaypointExistsAt( ourX, ourY ) )
+			ourActive = false;
+		else if ( !HasForeignWaypoint() )
+			return;
+
 		overridden = true;
-		if ( FindUserWaypoint( a, x, y ) )
+		if ( HasForeignWaypoint() )
 			savedUser = false;	// they placed a new one; never restore the old one over it
 		SRLog( "Player changed the waypoint; redirect paused until the objective changes" );
+	}
+
+	// A waypoint that is neither ours nor the player's pin we are keeping aside.
+	private function HasForeignWaypoint() : bool
+	{
+		var mm : CCommonMapManager;
+		var i, count, id, type : int;
+		var a : name;
+		var px, py : float;
+
+		mm = theGame.GetCommonMapManager();
+		count = mm.GetUserMapPinCount();
+		for ( i = 0; i < count; i += 1 )
+		{
+			if ( !mm.GetUserMapPinByIndex( i, id, a, px, py, type ) || type != WAYPOINT_TYPE )
+				continue;
+			if ( IsOurs( px, py ) )
+				continue;
+			if ( savedUser && savedCoexists && AbsF( px - savedX ) < SAME_POS && AbsF( py - savedY ) < SAME_POS )
+				continue;
+			return true;
+		}
+		return false;
 	}
 
 	// First waypoint that is not ours.
