@@ -30,11 +30,11 @@ class SROverlay
 	private const var ID_FIRST : int;			default ID_FIRST = 778100;
 	private const var ID_LAST : int;			default ID_LAST = 799000;
 
-	// Dots: -1 = opaque white (verified visible). Recoloured after the calibration test.
-	private const var DOT_COLOR : int;			default DOT_COLOR = -1;
-	private const var DOT_WIDTH : float;		default DOT_WIDTH = 20.0;
-	private const var DOT_LEN : float;			default DOT_LEN = 2.0;
-	private const var DOT_SPACING : float;		default DOT_SPACING = 8.0;
+	// Colour format is ARGB (verified with the calibration test). 0xB066CC77 = soft green, ~70% opaque.
+	private const var DOT_COLOR : int;			default DOT_COLOR = -1335440265;
+	private const var DOT_WIDTH : float;		default DOT_WIDTH = 14.0;
+	private const var DOT_LEN : float;			default DOT_LEN = 3.0;
+	private const var DOT_SPACING : float;		default DOT_SPACING = 10.0;
 	private const var DOT_RANGE : float;		default DOT_RANGE = 150.0;	// only dots this close to the player are drawn
 	private const var MAX_DOTS : int;			default MAX_DOTS = 25;
 
