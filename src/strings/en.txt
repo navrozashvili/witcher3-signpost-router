@@ -1,0 +1,14 @@
+# Signpost Router menu labels: key|text. Build with tools\build-strings.ps1.
+panel_SignpostRouter|Signpost Router
+option_SREnabled|Enabled
+option_SRMode|Mode
+preset_value_SRModeRedirect|Redirect game path
+preset_value_SRModeOverlay|Overlay line only
+option_SRPenalty|Fast travel penalty (m)
+option_SRDetour|Detour factor (%)
+option_SRMinSaving|Minimum saving (m)
+option_SRShowLine|Show route line
+option_SRStatus|Show status (one-shot)
+option_SRSelfTest|Run self-test (one-shot)
+option_SRCalibrate|Calibrate line colours (one-shot)
+option_SRLineTest|Line rendering test (one-shot)

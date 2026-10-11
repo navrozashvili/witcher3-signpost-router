@@ -1,0 +1,4 @@
+# Minimap Zoom menu labels: key|text. Build with ..\tools\build-strings.ps1.
+panel_MinimapZoom|Minimap Zoom
+option_MZRadius|Minimap radius outdoors (m)
+option_MZIndoors|Also zoom out indoors
