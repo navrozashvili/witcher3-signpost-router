@@ -20,8 +20,8 @@ function SRMakeSignpost( tag : name, x : float, y : float ) : SRSignpost
 
 function SRRunSelfTest() : string
 {
-	var sps, sps2, one : array< SRSignpost >;
-	var none, prev, p : SRPlan;
+	var sps, sps2, sps3, one : array< SRSignpost >;
+	var none, prev, prev3, p : SRPlan;
 	var origin : Vector;
 	var fails, checks : int;
 	var failed : string;
@@ -104,10 +104,16 @@ function SRRunSelfTest() : string
 	SRAssert( AbsF( p.routeCost - 350 ) < 0.5, "detour1", fails, failed );
 	checks += 1;
 
-	// 11. Min saving 0 with hysteresis never accepts a route that is worse than direct.
-	p = SRPlanRoute( origin, Vector( 300, 0, 0 ), sps2, 1.3, 150, 0, prev );
+	// 11. Min saving 0 with an active plan never accepts a route worse than direct (entry != exit path).
+	sps3.PushBack( SRMakeSignpost( 'sp_w', -100, 0 ) );
+	sps3.PushBack( SRMakeSignpost( 'sp_e', 200, 0 ) );
+	prev3.useSignposts = true;
+	prev3.entryTag = 'sp_w';
+	prev3.exitTag = 'sp_e';
+	p = SRPlanRoute( origin, Vector( 60, 0, 0 ), sps3, 1.3, 150, 0, prev3 );
 	SRAssert( !p.useSignposts, "minzero", fails, failed );
-	checks += 1;
+	SRAssert( p.routeCost > p.directCost, "minzero.cost", fails, failed );
+	checks += 2;
 
 	if ( fails == 0 )
 		return "Signpost Router self-test: ALL " + checks + " PASSED";
