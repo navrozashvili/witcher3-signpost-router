@@ -26,17 +26,18 @@ class SROverlay
 	private var wipes : int;
 	private var sends : int;
 
-	private const var DELETE_GAP : float;		default DELETE_GAP = 0.3;
+	private const var DELETE_GAP : float;		default DELETE_GAP = 0.1;
 	private const var ID_FIRST : int;			default ID_FIRST = 778100;
 	private const var ID_LAST : int;			default ID_LAST = 799000;
 
-	// Colour format is ARGB (verified with the calibration test). 0xB066CC77 = soft green, ~70% opaque.
-	private const var DOT_COLOR : int;			default DOT_COLOR = -1335440265;
+	// Colour format is ARGB (verified with the calibration test). 0xFF2E9A48 = dark green, opaque.
+	// Lengths below are at vanilla zoom (33 m radius) and scale with the minimap zoom.
+	private const var DOT_COLOR : int;			default DOT_COLOR = -13723064;
 	private const var DOT_WIDTH : float;		default DOT_WIDTH = 14.0;
 	private const var DOT_LEN : float;			default DOT_LEN = 3.0;
 	private const var DOT_SPACING : float;		default DOT_SPACING = 10.0;
-	private const var DOT_RANGE : float;		default DOT_RANGE = 150.0;	// only dots this close to the player are drawn
-	private const var MAX_DOTS : int;			default MAX_DOTS = 25;
+	private const var DOT_RANGE : float;		default DOT_RANGE = 45.0;	// a bit beyond the 33 m vanilla radius
+	private const var MAX_DOTS : int;			default MAX_DOTS = 40;
 
 	private const var STEP : float;				default STEP = 15.0;
 	private const var MIN_POINTS : int;			default MIN_POINTS = 12;
@@ -77,12 +78,43 @@ class SROverlay
 		}
 	}
 
+	public function IsBusy() : bool
+	{
+		return phase != 0;
+	}
+
+	// Dots are anchored to the signposts (counted from the signpost end of each leg), so a redraw after
+	// walking puts them in the same world positions. The ones nearest the player are sent first.
 	public function Draw( player : Vector, entryPos : Vector, exitPos : Vector, target : Vector )
 	{
+		var scale : float;
+		var near : array< SRDot >;
+		var i : int;
+
+		scale = ZoomScale();
 		queue.Clear();
-		AddDots( BuildLeg( player, entryPos, true, player ), player );
-		AddDots( BuildLeg( exitPos, target, false, player ), player );
+		near = AnchoredDots( BuildLeg( entryPos, player, true, player ), player, scale );
+		for ( i = near.Size() - 1; i >= 0; i -= 1 )
+			queue.PushBack( near[ i ] );
+		near = AnchoredDots( BuildLeg( exitPos, target, false, player ), player, scale );
+		for ( i = 0; i < near.Size(); i += 1 )
+			queue.PushBack( near[ i ] );
 		StartSend();
+	}
+
+	// 1 at vanilla zoom; larger when the minimap is zoomed out (e.g. by the Minimap Zoom mod).
+	public function ZoomScale() : float
+	{
+		var hud : CR4ScriptedHud;
+		var zoom : float;
+
+		hud = (CR4ScriptedHud)theGame.GetHud();
+		if ( !hud )
+			return 1.0;
+		zoom = hud.GetMinimapZoom();
+		if ( zoom <= 0 )
+			return 1.0;
+		return ClampF( 1.0 / zoom, 1.0, 8.0 );
 	}
 
 	// Five long test lines north of the player, west -> east, one colour encoding each.
@@ -175,18 +207,22 @@ class SROverlay
 		sentIds.PushBack( nextId );
 	}
 
-	// Queue a short dash every DOT_SPACING metres along the polyline, only within DOT_RANGE of the player.
-	private function AddDots( points : array< Vector >, player : Vector )
+	// A short dash every spacing metres along the polyline, counted from points[0] so the positions stay
+	// put between redraws. Only dashes within range of the player are returned (at most MAX_DOTS).
+	private function AnchoredDots( points : array< Vector >, player : Vector, scale : float ) : array< SRDot >
 	{
+		var result : array< SRDot >;
 		var dot : SRDot;
 		var a, b, dir, p : Vector;
-		var segLen, along : float;
+		var segLen, along, spacing, range : float;
 		var i : int;
 
+		spacing = DOT_SPACING * scale;
+		range = DOT_RANGE * scale;
 		dot.color = DOT_COLOR;
 		dot.width = DOT_WIDTH;
-		along = DOT_SPACING * 0.5;
-		for ( i = 0; i + 1 < points.Size() && queue.Size() < MAX_DOTS; i += 1 )
+		along = spacing;
+		for ( i = 0; i + 1 < points.Size() && result.Size() < MAX_DOTS; i += 1 )
 		{
 			a = points[ i ];
 			b = points[ i + 1 ];
@@ -194,19 +230,20 @@ class SROverlay
 			if ( segLen <= 0 )
 				continue;
 			dir = VecNormalize2D( b - a );
-			while ( along < segLen && queue.Size() < MAX_DOTS )
+			while ( along < segLen && result.Size() < MAX_DOTS )
 			{
 				p = a + dir * along;
-				if ( VecDistance2D( p, player ) <= DOT_RANGE )
+				if ( VecDistance2D( p, player ) <= range )
 				{
 					dot.from = p;
-					dot.to = p + dir * DOT_LEN;
-					queue.PushBack( dot );
+					dot.to = p + dir * ( DOT_LEN * scale );
+					result.PushBack( dot );
 				}
-				along += DOT_SPACING;
+				along += spacing;
 			}
 			along -= segLen;
 		}
+		return result;
 	}
 
 	// Evenly spaced points from 'from' to 'to'. With nudge, points within NUDGE_RANGE of the player are

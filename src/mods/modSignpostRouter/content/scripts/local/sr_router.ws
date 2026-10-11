@@ -22,10 +22,13 @@ class SRRouter
 	private var lastWorldPath : string;
 	private var adopted : bool;
 	private var pendingForce : bool;
+	private var lastDrawPos : Vector;
+	private var lastDrawScale : float;
 
 	private const var EVAL_INTERVAL : float;		default EVAL_INTERVAL = 2.0;
 	private const var MOVE_THRESHOLD : float;		default MOVE_THRESHOLD = 20.0;
 	private const var TELEPORT_THRESHOLD : float;	default TELEPORT_THRESHOLD = 300.0;
+	private const var REDRAW_DIST : float;			default REDRAW_DIST = 10.0;
 
 	public function Init( owner : CR4HudModuleMinimap2 )
 	{
@@ -57,6 +60,11 @@ class SRRouter
 		lastTickPos = pos;
 		lastWorldPath = worldPath;
 
+		// Between full re-plans, redraw the dots every REDRAW_DIST metres walked and when the zoom changes.
+		if ( routerState == SRS_Guiding && settings.showLine && !overlay.IsBusy() && !IsPaused()
+			&& ( VecDistance2D( pos, lastDrawPos ) >= REDRAW_DIST || AbsF( overlay.ZoomScale() - lastDrawScale ) > 0.05 ) )
+			DrawDots( pos, plan.entryPos, plan.exitPos, lastTarget );
+
 		now = theGame.GetEngineTimeAsSeconds();
 		if ( now - lastEvalTime < EVAL_INTERVAL )
 			return;
@@ -84,6 +92,13 @@ class SRRouter
 
 		Evaluate( pos, worldPath, pendingForce );
 		pendingForce = false;
+	}
+
+	private function DrawDots( pos : Vector, entryPos : Vector, exitPos : Vector, target : Vector )
+	{
+		overlay.Draw( pos, entryPos, exitPos, target );
+		lastDrawPos = pos;
+		lastDrawScale = overlay.ZoomScale();
 	}
 
 	public function OnPathsWiped()
@@ -139,7 +154,7 @@ class SRRouter
 		}
 
 		if ( settings.showLine )
-			overlay.Draw( pos, newPlan.entryPos, newPlan.exitPos, target );
+			DrawDots( pos, newPlan.entryPos, newPlan.exitPos, target );
 		else
 			overlay.Clear();
 
