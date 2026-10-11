@@ -7,7 +7,6 @@ function SRLineTest( minimap : CR4HudModuleMinimap2 )
 {
 	var path : SMapPathInstance;
 	var pts : array< Vector >;
-	var ids : array< int >;
 	var base, a, b, side : Vector;
 	var sps : array< SRSignpost >;
 	var j, best : int;
@@ -44,18 +43,6 @@ function SRLineTest( minimap : CR4HudModuleMinimap2 )
 		path.splinePoints.PushBack( a + ( b - a ) * ( (float)j / 119.0 ) );
 	minimap.AddMapPath( path );
 
-	// D
-	a = base + Vector( 30, 5, 0 );
-	b = a + Vector( 0, 60, 0 );
-	path.id = 778304;
-	path.splinePoints.Clear();
-	for ( j = 0; j < 12; j += 1 )
-		path.splinePoints.PushBack( a + ( b - a ) * ( (float)j / 11.0 ) );
-	minimap.AddMapPath( path );
-	ids.PushBack( 778304 );
-	minimap.DeleteMapPaths( ids );
-	minimap.AddMapPath( path );
-
 	// E: exact replica of the probe line that rendered (player + 12 m sideways -> nearest signpost, 12 points)
 	sps = SRCollectSignposts( theGame.GetWorld().GetDepotPath() );
 	best = -1;
@@ -87,7 +74,7 @@ function SRLineTest( minimap : CR4HudModuleMinimap2 )
 	minimap.AddMapPath( path );
 
 	if ( best >= 0 )
-		SRNotify( "SR line test: A-D short lines north; E to nearest signpost (" + RoundF( VecDistance2D( base, sps[ best ].pos ) ) + " m); F 300 m north" );
+		SRNotify( "SR line test: A-C short lines north; E to nearest signpost (" + RoundF( VecDistance2D( base, sps[ best ].pos ) ) + " m); F 300 m north" );
 	else
-		SRNotify( "SR line test: A-D short lines north; E skipped (no signpost); F 300 m north" );
+		SRNotify( "SR line test: A-C short lines north; E skipped (no signpost); F 300 m north" );
 }
