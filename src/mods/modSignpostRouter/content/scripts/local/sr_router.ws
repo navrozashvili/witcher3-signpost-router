@@ -22,6 +22,10 @@ class SRRouter
 	private var lastWorldPath : string;
 	private var adopted : bool;
 	private var pendingForce : bool;
+	private var wtStage : int;
+	private var wtTime : float;
+	private var wtRun : int;
+	private var wtBase : Vector;
 
 	private const var EVAL_INTERVAL : float;		default EVAL_INTERVAL = 2.0;
 	private const var MOVE_THRESHOLD : float;		default MOVE_THRESHOLD = 20.0;
@@ -56,6 +60,14 @@ class SRRouter
 			OnTeleported();
 		lastTickPos = pos;
 		lastWorldPath = worldPath;
+
+		// Temporary wipe-test sequencer (see sr_linetest.ws).
+		if ( wtStage > 0 && wtStage < 3 && theGame.GetEngineTimeAsSeconds() - wtTime >= 2.0 )
+		{
+			wtStage += 1;
+			wtTime = theGame.GetEngineTimeAsSeconds();
+			SRWipeTestStep( minimap, wtStage, wtRun, wtBase );
+		}
 
 		now = theGame.GetEngineTimeAsSeconds();
 		if ( now - lastEvalTime < EVAL_INTERVAL )
@@ -244,5 +256,13 @@ class SRRouter
 				SRCalibrate( minimap );
 			if ( SRConsumeToggle( 'SRLineTest' ) )
 				SRLineTest( minimap );
+			if ( SRConsumeToggle( 'SRWipeTest' ) )
+			{
+				wtRun += 1;
+				wtStage = 1;
+				wtTime = theGame.GetEngineTimeAsSeconds();
+				wtBase = thePlayer.GetWorldPosition();
+				SRWipeTestStep( minimap, wtStage, wtRun, wtBase );
+			}
 	}
 }
