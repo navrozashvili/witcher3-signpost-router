@@ -4,6 +4,10 @@ class SROverlay
 {
 	private var minimap : CR4HudModuleMinimap2;
 	private var drawn : bool;
+	private var pending : bool;
+	private var deletedThisTick : bool;
+	private var pendingEntry : array< Vector >;
+	private var pendingExit : array< Vector >;
 
 	// -1 = opaque white and width 20 are verified visible on 5.0; Task 6 recalibrates to subtle green.
 	private const var LINE_COLOR : int;			default LINE_COLOR = -1;
@@ -23,27 +27,46 @@ class SROverlay
 
 	public function IsDrawn() : bool
 	{
-		return drawn;
+		return drawn || pending;
+	}
+
+	// Verified in game: a DeleteMapPaths call wipes every path added in the same tick.
+	// So a redraw deletes now and sends the new lines on the next tick. Call Flush() once per tick,
+	// before anything else touches the overlay.
+	public function Flush()
+	{
+		if ( pending )
+		{
+			SendPath( ID_ENTRY, pendingEntry );
+			SendPath( ID_EXIT, pendingExit );
+			pending = false;
+			drawn = true;
+		}
+		deletedThisTick = false;
 	}
 
 	public function Draw( player : Vector, entryPos : Vector, exitPos : Vector, target : Vector )
 	{
 		Clear();
-		SendPath( ID_ENTRY, BuildLeg( player, entryPos, true, player ) );
-		SendPath( ID_EXIT, BuildLeg( exitPos, target, false, player ) );
-		drawn = true;
+		pendingEntry = BuildLeg( player, entryPos, true, player );
+		pendingExit = BuildLeg( exitPos, target, false, player );
+		pending = true;
+		if ( !deletedThisTick )
+			Flush();
 	}
 
 	public function Clear()
 	{
 		var ids : array< int >;
 
+		pending = false;
 		if ( !drawn || !minimap )
 			return;
 		ids.PushBack( ID_ENTRY );
 		ids.PushBack( ID_EXIT );
 		minimap.DeleteMapPaths( ids );
 		drawn = false;
+		deletedThisTick = true;
 	}
 
 	private function SendPath( id : int, points : array< Vector > )

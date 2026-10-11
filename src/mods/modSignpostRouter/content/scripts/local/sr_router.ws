@@ -46,6 +46,8 @@ class SRRouter
 		var worldPath : string;
 		var settingsChanged : bool;
 
+		overlay.Flush();
+
 		pos = thePlayer.GetWorldPosition();
 		worldPath = theGame.GetWorld().GetDepotPath();
 
