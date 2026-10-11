@@ -70,6 +70,22 @@ class SROverlay
 		deletedThisTick = false;
 	}
 
+	// TEMPORARY diagnostic: send the current route legs once under fresh ids, no deletes.
+	public function DebugSendRoute() : string
+	{
+		var e, x : int;
+
+		e = pendingEntry.Size();
+		x = pendingExit.Size();
+		SendPath( 795001 + sends * 2, pendingEntry );
+		SendPath( 795002 + sends * 2, pendingExit );
+		sends += 1;
+		if ( e > 0 )
+			return "Route test: entry " + e + " pts from " + RoundF( pendingEntry[0].X ) + "," + RoundF( pendingEntry[0].Y )
+				+ " to " + RoundF( pendingEntry[e - 1].X ) + "," + RoundF( pendingEntry[e - 1].Y ) + " | exit " + x + " pts";
+		return "Route test: no route legs stored (entry 0 pts, exit " + x + " pts)";
+	}
+
 	public function GetSends() : int
 	{
 		return sends;

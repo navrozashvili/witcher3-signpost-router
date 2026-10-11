@@ -256,6 +256,8 @@ class SRRouter
 				SRCalibrate( minimap );
 			if ( SRConsumeToggle( 'SRLineTest' ) )
 				SRLineTest( minimap );
+			if ( SRConsumeToggle( 'SRRouteTest' ) )
+				SRNotify( overlay.DebugSendRoute() + " | player " + RoundF( thePlayer.GetWorldPosition().X ) + "," + RoundF( thePlayer.GetWorldPosition().Y ) );
 			if ( SRConsumeToggle( 'SRWipeTest' ) )
 			{
 				wtRun += 1;

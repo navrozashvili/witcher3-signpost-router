@@ -22,6 +22,7 @@
 			<Var id="SRCalibrate" displayName="SRCalibrate" displayType="TOGGLE" tags="nonSyncable"/>
 			<Var id="SRLineTest" displayName="SRLineTest" displayType="TOGGLE" tags="nonSyncable"/>
 			<Var id="SRWipeTest" displayName="SRWipeTest" displayType="TOGGLE" tags="nonSyncable"/>
+			<Var id="SRRouteTest" displayName="SRRouteTest" displayType="TOGGLE" tags="nonSyncable"/>
 		</VisibleVars>
 	</Group>
 </UserConfig>
