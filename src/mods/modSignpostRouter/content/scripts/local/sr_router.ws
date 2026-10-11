@@ -86,6 +86,11 @@ class SRRouter
 		pendingForce = false;
 	}
 
+	public function OnPathsWiped()
+	{
+		overlay.OnPathsWiped();
+	}
+
 	private function Evaluate( pos : Vector, worldPath : string, force : bool )
 	{
 		var target : Vector;
@@ -232,7 +237,7 @@ class SRRouter
 			SRNotify( "SR " + StateName() + " | " + settings.ToString()
 				+ " | direct=" + RoundF( plan.directCost ) + " route=" + RoundF( plan.routeCost )
 				+ " " + NameToString( plan.entryTag ) + "->" + NameToString( plan.exitTag )
-				+ " | " + pins.ToString() + " line=" + SRBool( overlay.IsDrawn() ) );
+				+ " | " + pins.ToString() + " line=" + SRBool( overlay.IsDrawn() ) + " wipes=" + overlay.GetWipes() );
 		if ( SRConsumeToggle( 'SRSelfTest' ) )
 			SRNotify( SRRunSelfTest() );
 			if ( SRConsumeToggle( 'SRCalibrate' ) )
