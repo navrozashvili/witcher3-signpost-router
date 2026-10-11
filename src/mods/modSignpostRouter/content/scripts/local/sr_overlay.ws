@@ -32,8 +32,8 @@ class SROverlay
 
 	// Lengths below are at vanilla zoom (33 m radius) and scale with the minimap zoom. Colour comes from settings.
 	private const var DOT_WIDTH : float;		default DOT_WIDTH = 14.0;
-	private const var DOT_LEN : float;			default DOT_LEN = 2.0;
-	private const var DOT_SPACING : float;		default DOT_SPACING = 5.0;
+	private const var DOT_LEN : float;			default DOT_LEN = 1.5;
+	private const var DOT_SPACING : float;		default DOT_SPACING = 3.5;
 	private const var DOT_RANGE : float;		default DOT_RANGE = 45.0;	// a bit beyond the 33 m vanilla radius
 	private const var MAX_DOTS : int;			default MAX_DOTS = 40;
 
