@@ -1,10 +1,16 @@
 # Witcher 3 mods: Signpost Router and Minimap Zoom
 
-Two WitcherScript mods for The Witcher 3 game version 5.0 (Remastered). Both are loose script mods plus a settings XML.
+Two WitcherScript mods for The Witcher 3 Remastered (game version 5.0). Both are loose script mods with a settings page under Options -> Mods. No REDkit needed: loose `.ws` scripts with `@wrapMethod` / `@addMethod` annotations compile on 5.0, and no vanilla files are changed.
 
 ## Signpost Router
 
-When you set a map waypoint, the mod compares walking straight there against walking to a signpost, fast travelling, and walking from the exit signpost. If the route is clearly shorter it places an intermediate pin on the entry signpost (Redirect mode) or just draws a line on the minimap (Overlay mode).
+Uses fast-travel signposts when they get you to your objective faster than walking.
+
+- **Route guidance.** For the tracked quest objective (or your own waypoint), the mod compares walking straight there against walking to a signpost, fast travelling, and walking from the signpost nearest the target. If the signpost route is clearly cheaper, it shows it on the minimap:
+  - *Redirect game path* mode moves the game's guidance to the entry signpost by placing a waypoint there.
+  - *Overlay line only* mode leaves the game's path alone.
+  - In both modes, coloured dots on the minimap mark the route to the entry signpost and from the exit signpost to the target.
+- **Signpost Jump.** When you open the map at a signpost, press **T** (gamepad: L3) to fast travel straight to the signpost nearest your target. Selecting the signpost you are standing at does the same. The key hint only appears when there is somewhere to jump to.
 
 ### Install
 
@@ -20,34 +26,32 @@ Delete `<game>\mods\modSignpostRouter` and `<game>\bin\config\r4game\user_config
 
 ### Settings
 
-Options -> Mods -> Signpost Router. The row labels currently render blank on 5.0 (see Known limits), so here is the row order, top to bottom:
+Options -> Mods -> Signpost Router:
 
-1. Enabled (toggle)
-2. Mode: Redirect game path / Overlay line only (options)
-3. Fast travel penalty in metres (slider 0-500)
-4. Detour factor in percent (slider 100-200)
-5. Minimum saving in metres (slider 0-1000)
-6. Show route line (toggle)
-7. Show status, one-shot (toggle)
-8. Run self-test, one-shot (toggle)
-9. Calibrate line colours, one-shot (toggle)
+| Setting | What it does |
+|---|---|
+| Enabled | Turns the mod on or off |
+| Mode | Redirect game path / Overlay line only |
+| Fast travel penalty (m) | How many metres of walking one fast travel is worth (loading screen cost). Default 150 |
+| Detour factor (%) | Multiplier on straight-line distance, since roads are never straight. Default 130 |
+| Minimum saving (m) | The signpost route must save at least this much. Default 200 |
+| Show route dots | Draws the dotted route on the minimap |
+| Route colour | Cyan, Gold, Magenta, Lime, Orange or Dark green |
+| Show status (one-shot) | Shows the current plan: costs, entry/exit signposts, pin and dot state |
+| Run self-test (one-shot) | Runs the planner tests; expect "ALL 20 PASSED" |
 
 One-shot toggles run once and switch themselves back off.
-
-### Reading Status
-
-Switch row 7 on. A notification shows the current plan: direct and route cost in metres, the entry and exit signpost tags, the pin state and whether the line is drawn. Rows 8 and 9 are developer aids (self-test and colour calibration lines).
 
 ### Known limits
 
 - Distances are straight-line estimates, not real path lengths.
-- No cross-region routing.
-- A manual pin replaced before quitting the game is not restored after restarting.
-- Settings labels are blank on 5.0: unknown localisation keys render empty, and no verified way to ship a 5.0 `.w3strings` was found yet.
+- Only signposts in the current region are used; no cross-region routing.
+- Guidance pauses indoors, while sailing and during dialogue or cutscenes.
+- After a fast travel the plan usually becomes "walk direct", so only the game's own path shows.
 
 ## Minimap Zoom
 
-Changes the minimap radius so you can see further.
+Shows more of the world on the minimap. Signpost Router's dots scale with it.
 
 ### Install
 
@@ -59,7 +63,28 @@ Uninstall by deleting `<game>\mods\modMinimapZoom` and `modMinimapZoom.xml` from
 
 ### Settings
 
-Options -> Mods -> Minimap Zoom (labels also blank). Rows in order:
+Options -> Mods -> Minimap Zoom:
 
-1. Minimap radius outdoors in metres (slider 33-200, default 100)
-2. Also zoom out indoors (toggle, default off)
+| Setting | What it does |
+|---|---|
+| Minimap radius outdoors (m) | 33-200, default 100 (vanilla is 33) |
+| Also zoom out indoors | Off by default, so interiors keep the vanilla zoom |
+
+## Development
+
+- `src/` - Signpost Router sources: scripts in `src/mods/modSignpostRouter/content/scripts/local/`, settings XML in `src/bin/...`, menu labels in `src/strings/en.txt`.
+- `minimap-zoom/` - Minimap Zoom sources, same layout.
+- `tools/w3strings.ps1` - reads and writes 5.0 `.w3strings` files (UTF-8, v164). The format is ported from [Witcher3StringEditor](https://github.com/0x7A2C9E5D/Witcher3StringEditor) (MIT).
+- `tools/build-strings.ps1` - rebuilds both mods' `en.w3strings` from the `en.txt` files and checks every key round-trips. Run it after editing labels. Label keys: `panel_<Group>`, `option_<VarId>`, `preset_value_<OptionName>`.
+- `probe/` - the original feasibility probe used to confirm what works on 5.0 without REDkit. `tools/install.ps1` removes it from the game if present.
+- `docs/superpowers/` - design spec and implementation plan.
+
+Script errors show on the game's startup screen; lines starting with `Warning [content0]` come from the base game and can be ignored.
+
+### Minimap path notes (verified on 5.0)
+
+- `DeleteMapPaths` with any known id wipes every path; paths added afterwards draw fine.
+- Only the last `AddMapPath` in a frame takes effect, so dots are sent one per frame.
+- An id the minimap has already seen is ignored, so every dot gets a fresh id.
+- Placing a map pin wipes paths.
+- Path colour is ARGB (alpha 0 is invisible).
