@@ -77,7 +77,6 @@ Options -> Mods -> Minimap Zoom:
 - `tools/w3strings.ps1` - reads and writes 5.0 `.w3strings` files (UTF-8, v164). The format is ported from [Witcher3StringEditor](https://github.com/0x7A2C9E5D/Witcher3StringEditor) (MIT).
 - `tools/build-strings.ps1` - rebuilds both mods' `en.w3strings` from the `en.txt` files and checks every key round-trips. Run it after editing labels. Label keys: `panel_<Group>`, `option_<VarId>`, `preset_value_<OptionName>`.
 - `probe/` - the original feasibility probe used to confirm what works on 5.0 without REDkit. `tools/install.ps1` removes it from the game if present.
-- `docs/superpowers/` - design spec and implementation plan.
 
 Script errors show on the game's startup screen; lines starting with `Warning [content0]` come from the base game and can be ignored.
 
