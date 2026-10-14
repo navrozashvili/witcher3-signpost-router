@@ -61,12 +61,12 @@
 // The T key arrives at whichever menu the hint bar reports to; handle it in both.
 @wrapMethod(CR4CommonMenu) function OnInputHandled( NavCode : string, KeyCode : int, ActionId : int )
 {
-	var map : CR4MapMenu;
+	var mapMenu : CR4MapMenu;
 
 	if ( KeyCode == (int)IK_T || NavCode == "gamepad_L3" )
 	{
-		map = (CR4MapMenu)GetSubMenu();
-		if ( map && map.SRJump() )
+		mapMenu = (CR4MapMenu)GetSubMenu();
+		if ( mapMenu && mapMenu.SRJump() )
 			return true;
 	}
 	return wrappedMethod( NavCode, KeyCode, ActionId );
@@ -74,12 +74,12 @@
 
 @wrapMethod(CR4MenuBase) function OnInputHandled( NavCode : string, KeyCode : int, ActionId : int )
 {
-	var map : CR4MapMenu;
+	var mapMenu : CR4MapMenu;
 
 	if ( KeyCode == (int)IK_T || NavCode == "gamepad_L3" )
 	{
-		map = (CR4MapMenu)this;
-		if ( map && map.SRJump() )
+		mapMenu = (CR4MapMenu)this;
+		if ( mapMenu && mapMenu.SRJump() )
 			return true;
 	}
 	return wrappedMethod( NavCode, KeyCode, ActionId );
