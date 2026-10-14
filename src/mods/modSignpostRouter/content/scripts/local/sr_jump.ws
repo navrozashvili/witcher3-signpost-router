@@ -5,6 +5,7 @@
 {
 	var initData : W3MapInitData;
 	var here : W3FastTravelEntity;
+	var hud : CR4ScriptedHud;
 	var minimap : CR4HudModuleMinimap2;
 
 	initData = (W3MapInitData)GetMenuInitData();
@@ -13,7 +14,10 @@
 	here = (W3FastTravelEntity)initData.GetUsedFastTravelEntity();
 	if ( !here )
 		return false;
-	minimap = GetMinimap2Module();
+	hud = (CR4ScriptedHud)theGame.GetHud();
+	if ( !hud )
+		return false;
+	minimap = (CR4HudModuleMinimap2)hud.GetHudModule( "Minimap2Module" );
 	if ( !minimap || !minimap.srRouter )
 		return false;
 	return minimap.srRouter.FindJumpSignpost( here.entityName, tag );
