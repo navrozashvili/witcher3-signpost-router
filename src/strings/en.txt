@@ -17,3 +17,4 @@ preset_value_SRColorMagenta|Magenta
 preset_value_SRColorLime|Lime
 preset_value_SRColorOrange|Orange
 preset_value_SRColorDarkGreen|Dark green
+panel_button_sr_jump|Jump to route signpost

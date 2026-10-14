@@ -206,6 +206,33 @@ class SRRouter
 		return false;
 	}
 
+	// Signpost Jump: the discovered signpost nearest the current target, unless that is the one at 'here'.
+	public function FindJumpSignpost( here : name, out tag : name ) : bool
+	{
+		var worldPath : string;
+		var target : Vector;
+		var isUserPin : bool;
+		var signposts : array< SRSignpost >;
+		var i : int;
+		var d, best : float;
+
+		worldPath = theGame.GetWorld().GetDepotPath();
+		if ( !FindTarget( worldPath, thePlayer.GetWorldPosition(), target, isUserPin ) )
+			return false;
+		signposts = SRCollectSignposts( worldPath );
+		best = -1;
+		for ( i = 0; i < signposts.Size(); i += 1 )
+		{
+			d = VecDistance2D( signposts[ i ].pos, target );
+			if ( best < 0 || d < best )
+			{
+				best = d;
+				tag = signposts[ i ].tag;
+			}
+		}
+		return best >= 0 && tag != here;
+	}
+
 	private function IsPaused() : bool
 	{
 		return theGame.IsDialogOrCutscenePlaying() || theGame.IsBlackscreenOrFading()
