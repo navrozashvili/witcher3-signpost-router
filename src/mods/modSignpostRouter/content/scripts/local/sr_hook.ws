@@ -15,6 +15,21 @@ var srRouter : SRRouter;
 	srRouter.Tick();
 }
 
+// While guiding, the time/weather tab above the minimap shows the signpost route distances in place of
+// the weather ("1:57 AM | 320 m > 140 m"); the tab is too narrow for both. Empty = vanilla text.
+@addField(CR4HudModuleMinimap2)
+var srTimeSuffix : string;
+
+@wrapMethod(CR4HudModuleMinimap2) function RefreshTimeDisplay()
+{
+	if ( srTimeSuffix == "" )
+	{
+		wrappedMethod();
+		return;
+	}
+	m_flashValueStorage.SetFlashString( 'hud.worldcondition.text', GetCurrentTimeString() + srTimeSuffix );
+}
+
 // The game deletes its minimap paths whenever map pins change, and that wipes ours too.
 // Tell the router so it can re-send its lines.
 @wrapMethod(CCommonMapManager) function DeleteMapPathsFromMinimap( ids : array< int > )

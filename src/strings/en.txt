@@ -8,6 +8,7 @@ option_SRPenalty|Fast travel penalty (m)
 option_SRDetour|Detour factor (%)
 option_SRMinSaving|Minimum saving (m)
 option_SRShowLine|Show route dots
+option_SRShowDistances|Show route distances by minimap
 option_SRStatus|Show status (one-shot)
 option_SRSelfTest|Run self-test (one-shot)
 option_SRColor|Route colour

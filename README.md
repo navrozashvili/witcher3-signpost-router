@@ -10,7 +10,10 @@ Uses fast-travel signposts when they get you to your objective faster than walki
   - *Redirect game path* mode moves the game's guidance to the entry signpost by placing a waypoint there.
   - *Overlay line only* mode leaves the game's path alone.
   - In both modes, coloured dots on the minimap mark the route to the entry signpost and from the exit signpost to the target.
-- **Signpost Jump.** When you open the map at a signpost, press **T** (gamepad: L3) to fast travel straight to the signpost nearest your target. Selecting the signpost you are standing at does the same. The key hint only appears when there is somewhere to jump to.
+  - The time/weather tab above the minimap's distance tab shows `1:57 AM | 320 m > 140 m` instead of the weather: straight-line metres to the entry signpost, then from the exit signpost to the target. (The game's own distance tab is drawn by Flash and can't be extended from scripts.)
+- **Signpost Jump.** Fast travels straight to the signpost nearest your target:
+  - Standing at a signpost (map closed), press **F2**. T can't be used here because it drinks/eats quick slot 3.
+  - In the map opened from a signpost, press **T** (gamepad: L3), or select the signpost you are standing at. The key hint only appears when there is somewhere to jump to.
 
 ### Install
 
@@ -18,11 +21,11 @@ Uses fast-travel signposts when they get you to your objective faster than walki
 powershell -ExecutionPolicy Bypass -File tools\install.ps1
 ```
 
-Pass `-GameDir "<path>"` if the game is not in `D:\SteamLibrary\steamapps\common\The Witcher 3`. This copies `mods\modSignpostRouter` and `modSignpostRouter.xml` into the game folder.
+Pass `-GameDir "<path>"` if the game is not in `D:\SteamLibrary\steamapps\common\The Witcher 3`. This copies `mods\modSignpostRouter` and `modSignpostRouter.xml` into the game folder, and (with the game closed) adds `IK_F2=(Action=SRSignpostJump)` under `[Exploration]` in `Documents\The Witcher 3\input.settings`. Pass `-JumpKey IK_9` (or any free key) to use a different key.
 
 ### Uninstall
 
-Delete `<game>\mods\modSignpostRouter` and `<game>\bin\config\r4game\user_config_matrix\pc\modSignpostRouter.xml`.
+Delete `<game>\mods\modSignpostRouter` and `<game>\bin\config\r4game\user_config_matrix\pc\modSignpostRouter.xml`, and the `(Action=SRSignpostJump)` line from `input.settings`.
 
 ### Settings
 
@@ -37,6 +40,7 @@ Options -> Mods -> Signpost Router:
 | Minimum saving (m) | The signpost route must save at least this much. Default 200 |
 | Show route dots | Draws the dotted route on the minimap |
 | Route colour | Cyan, Gold, Magenta, Lime, Orange or Dark green |
+| Show route distances by minimap | Adds the signpost route distances to the time/weather tab |
 | Show status (one-shot) | Shows the current plan: costs, entry/exit signposts, pin and dot state |
 | Run self-test (one-shot) | Runs the planner tests; expect "ALL 20 PASSED" |
 

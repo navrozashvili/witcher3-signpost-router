@@ -23,12 +23,13 @@ class SRSettings
 	public var minSaving : float;	// metres the signpost route must save
 	public var showLine : bool;
 	public var color : int;			// index into SRRouteColor()
+	public var showDistances : bool;
 
 	// Returns true if any value differs from the previous Load().
 	public function Load() : bool
 	{
 		var cfg : CInGameConfigWrapper;
-		var e, s, changed : bool;
+		var e, s, sd, changed : bool;
 		var m, c : int;
 		var p, d, ms : float;
 
@@ -45,8 +46,10 @@ class SRSettings
 		ms = StringToFloat( cfg.GetVarValue( 'SignpostRouter', 'SRMinSaving' ), 200 );
 		s  = cfg.GetVarValue( 'SignpostRouter', 'SRShowLine' ) == "true";
 		c  = StringToInt( cfg.GetVarValue( 'SignpostRouter', 'SRColor' ), 0 );
+		sd = cfg.GetVarValue( 'SignpostRouter', 'SRShowDistances' ) != "false";	// unset (older installs) = on
 
 		changed = e != enabled || m != mode || p != penalty || d != detour || ms != minSaving || s != showLine || c != color;
+		showDistances = sd;	// display only, so no re-plan needed
 
 		enabled = e;
 		mode = m;
@@ -61,7 +64,7 @@ class SRSettings
 	public function ToString() : string
 	{
 		return "on=" + SRBool( enabled ) + " mode=" + mode + " pen=" + RoundF( penalty )
-			+ " det=" + RoundF( detour * 100 ) + " min=" + RoundF( minSaving ) + " line=" + SRBool( showLine ) + " col=" + color;
+			+ " det=" + RoundF( detour * 100 ) + " min=" + RoundF( minSaving ) + " line=" + SRBool( showLine ) + " col=" + color + " dist=" + SRBool( showDistances );
 	}
 
 	private function WriteDefaults( cfg : CInGameConfigWrapper )
@@ -72,6 +75,7 @@ class SRSettings
 		cfg.SetVarValue( 'SignpostRouter', 'SRDetour', "130" );
 		cfg.SetVarValue( 'SignpostRouter', 'SRMinSaving', "200" );
 		cfg.SetVarValue( 'SignpostRouter', 'SRShowLine', "true" );
+		cfg.SetVarValue( 'SignpostRouter', 'SRShowDistances', "true" );
 		theGame.SaveUserSettings();
 		SRLog( "Settings initialised with defaults" );
 	}

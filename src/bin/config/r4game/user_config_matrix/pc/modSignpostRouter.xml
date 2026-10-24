@@ -27,6 +27,7 @@
 					<Option id="5" displayName="SRColorDarkGreen"><Entry varId="SRColor" value="5"/></Option>
 				</OptionsArray>
 			</Var>
+			<Var id="SRShowDistances" displayName="SRShowDistances" displayType="TOGGLE" tags="nonSyncable"/>
 			<Var id="SRStatus" displayName="SRStatus" displayType="TOGGLE" tags="nonSyncable"/>
 			<Var id="SRSelfTest" displayName="SRSelfTest" displayType="TOGGLE" tags="nonSyncable"/>
 		</VisibleVars>

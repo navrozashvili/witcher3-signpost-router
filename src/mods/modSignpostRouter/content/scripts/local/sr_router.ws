@@ -24,8 +24,11 @@ class SRRouter
 	private var pendingForce : bool;
 	private var lastDrawPos : Vector;
 	private var lastDrawScale : float;
+	private var lastHudTime : float;
 
 	private const var EVAL_INTERVAL : float;		default EVAL_INTERVAL = 2.0;
+	private const var HUD_INTERVAL : float;			default HUD_INTERVAL = 0.25;
+	private const var JUMP_RANGE : float;			default JUMP_RANGE = 8.0;
 	private const var MOVE_THRESHOLD : float;		default MOVE_THRESHOLD = 20.0;
 	private const var TELEPORT_THRESHOLD : float;	default TELEPORT_THRESHOLD = 300.0;
 	private const var REDRAW_DIST : float;			default REDRAW_DIST = 10.0;
@@ -39,7 +42,15 @@ class SRRouter
 		overlay.Init( owner );
 		settings.Load();
 		routerState = SRS_Idle;
+		theInput.RegisterListener( this, 'OnSRSignpostJump', 'SRSignpostJump' );
 		SRLog( "Router initialised: " + settings.ToString() );
+	}
+
+	// The dedicated jump key (input.settings action SRSignpostJump), used while standing at a signpost.
+	event OnSRSignpostJump( action : SInputAction )
+	{
+		if ( IsPressed( action ) )
+			JumpFromHere();
 	}
 
 	public function Tick()
@@ -64,6 +75,8 @@ class SRRouter
 		if ( routerState == SRS_Guiding && settings.showLine && !overlay.IsBusy() && !IsPaused()
 			&& ( VecDistance2D( pos, lastDrawPos ) >= REDRAW_DIST || AbsF( overlay.ZoomScale() - lastDrawScale ) > 0.05 ) )
 			DrawDots( pos, plan.entryPos, plan.exitPos, lastTarget );
+
+		UpdateHudDistances( pos );
 
 		now = theGame.GetEngineTimeAsSeconds();
 		if ( now - lastEvalTime < EVAL_INTERVAL )
@@ -99,6 +112,86 @@ class SRRouter
 		overlay.Draw( pos, entryPos, exitPos, target, SRRouteColor( settings.color ) );
 		lastDrawPos = pos;
 		lastDrawScale = overlay.ZoomScale();
+	}
+
+	// While guiding, the time/weather tab shows "<to entry> m > <exit to target> m" (straight line, like the
+	// game's own objective distance). Pushed only when the text changes, at most every HUD_INTERVAL.
+	private function UpdateHudDistances( pos : Vector )
+	{
+		var text : string;
+		var now : float;
+
+		if ( routerState == SRS_Guiding && settings.enabled && settings.showDistances && !IsPaused() )
+			text = " | " + RoundF( VecDistance2D( pos, plan.entryPos ) ) + " m > "
+				+ RoundF( VecDistance2D( plan.exitPos, lastTarget ) ) + " m";
+		if ( text == minimap.srTimeSuffix )
+			return;
+		now = theGame.GetEngineTimeAsSeconds();
+		if ( text != "" && now - lastHudTime < HUD_INTERVAL )
+			return;
+		lastHudTime = now;
+		minimap.srTimeSuffix = text;
+		minimap.RefreshTimeDisplay();
+	}
+
+	// Jump key outside menus: fast travel from the signpost the player stands at to the one nearest the target.
+	// Same steps as the map's local fast travel (CR4MapMenu.OnStaticMapPinUsed), minus the menu.
+	private function JumpFromHere()
+	{
+		var mm : CCommonMapManager;
+		var entities : array< CGameplayEntity >;
+		var here, sp : W3FastTravelEntity;
+		var i : int;
+		var d, best : float;
+		var tag, area : name;
+
+		if ( !settings.enabled || theGame.IsBlackscreenOrFading() || theGame.IsDialogOrCutscenePlaying() )
+			return;
+		FindGameplayEntitiesInRange( entities, thePlayer, JUMP_RANGE, 10, , , , 'W3FastTravelEntity' );
+		best = -1;
+		for ( i = 0; i < entities.Size(); i += 1 )
+		{
+			sp = (W3FastTravelEntity)entities[ i ];
+			if ( !sp )
+				continue;
+			d = VecDistance2D( sp.GetWorldPosition(), thePlayer.GetWorldPosition() );
+			if ( best < 0 || d < best )
+			{
+				best = d;
+				here = sp;
+			}
+		}
+		if ( !here )
+		{
+			thePlayer.DisplayHudMessage( "Signpost Jump: stand at a signpost first" );
+			return;
+		}
+
+		mm = theGame.GetCommonMapManager();
+		if ( !thePlayer.IsActionAllowed( EIAB_FastTravel ) )
+		{
+			thePlayer.DisplayActionDisallowedHudMessage( EIAB_FastTravel );
+			return;
+		}
+		if ( mm.IsEntityMapPinDisabled( here.entityName ) )
+		{
+			thePlayer.DisplayActionDisallowedHudMessage( EIAB_Undefined, , , true );
+			return;
+		}
+		if ( !FindJumpSignpost( here.entityName, tag ) )
+		{
+			thePlayer.DisplayHudMessage( "Signpost Jump: no signpost closer to your target" );
+			return;
+		}
+
+		SRLog( "Signpost Jump (key) " + NameToString( here.entityName ) + " -> " + NameToString( tag ) );
+		area = mm.GetAreaFromWorldPath( theGame.GetWorld().GetDepotPath() );
+		mm.UseMapPin( tag, true );
+		mm.SetDesiredFastTravelPoint( tag, area );
+		mm.PerformLocalFastTravelTeleport( tag );
+		if ( !theGame.IsGameTimePaused() )
+			theGame.SetGameTime( theGame.GetGameTime() + GameTimeCreate( 0, RoundF( RandF() * 4 ), RoundF( RandF() * 60 ), RoundF( RandF() * 60 ) ), true );
+		mm.OnFastTravelInitiated( tag, area );
 	}
 
 	public function OnPathsWiped()
